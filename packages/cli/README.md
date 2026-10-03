@@ -5,7 +5,7 @@
 Switchyard eliminates AI model routing inefficiencies, prevents destructive code modifications with pre-task Git Checkpoints, and enables Bring Your Own Key (BYOK) for zero server costs.
 
 - Official Documentation: https://switchyard-docs--lukasdesouza.replit.app/
-- GitHub Repository: https://github.com/LukasdeSouza/nexus-ai-gateway
+- GitHub Repository: https://github.com/LukasdeSouza/switchyard-ai
 
 ---
 
@@ -140,7 +140,7 @@ switchyard daemon
 ## Links & Community
 
 - Documentation: https://switchyard-docs--lukasdesouza.replit.app/
-- GitHub: https://github.com/LukasdeSouza/nexus-ai-gateway
+- GitHub: https://github.com/LukasdeSouza/switchyard-ai
 - Node.js SDK: `npm install switchyard-sdk`
 
 ---

@@ -1,6 +1,6 @@
 {
   "name": "switchyard-ai",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Switchyard - The Routing, Cost & Safety Layer for AI Coding Agents",
   "main": "./bin/switchyard.js",
   "bin": {
@@ -27,6 +27,6 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/LukasdeSouza/nexus-ai-gateway.git"
+    "url": "git+https://github.com/LukasdeSouza/switchyard-ai.git"
   }
 }

@@ -11,6 +11,11 @@
     "bin",
     "README.md"
   ],
+  "optionalDependencies": {
+    "switchyard-ai-darwin-arm64": "1.0.1",
+    "switchyard-ai-linux-x64": "1.0.1",
+    "switchyard-ai-win32-x64": "1.0.1"
+  },
   "keywords": [
     "switchyard",
     "ai",

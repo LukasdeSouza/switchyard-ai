@@ -92,6 +92,19 @@ func (r *ProviderRepo) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
+// DeleteByProjectAndProvider removes a provider connection by project ID and provider.
+func (r *ProviderRepo) DeleteByProjectAndProvider(ctx context.Context, projectID string, p domain.ProviderID) error {
+	query := `DELETE FROM provider_connections WHERE project_id = $1 AND provider = $2`
+	tag, err := r.pool.Exec(ctx, query, projectID, string(p))
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return domain.ErrNotFound
+	}
+	return nil
+}
+
 func (r *ProviderRepo) scanRow(row pgx.Row) (*domain.ProviderConnection, error) {
 	var conn domain.ProviderConnection
 	var prov string

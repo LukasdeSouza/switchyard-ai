@@ -308,6 +308,13 @@ func main() {
 			os.Exit(1)
 		}
 
+	case "setup":
+		baseURL := DefaultGatewayURL
+		if creds, err := loadCredentials(); err == nil && creds != nil && creds.BaseURL != "" {
+			baseURL = creds.BaseURL
+		}
+		RunSetupWizard(baseURL)
+
 	case "keys", "key":
 		handleKeysCommand(os.Args[2:])
 
@@ -416,6 +423,7 @@ func printRootHelp() {
 	fmt.Println(bold(cyan("  SWITCHYARD - The Routing, Cost & Safety Layer for AI Coding Agents")))
 	fmt.Println()
 	fmt.Println(bold("  Usage:"))
+	fmt.Printf("    %s %s\n", cyan("switchyard setup"), dim("[interactive first-run wizard]"))
 	fmt.Printf("    %s %s\n", cyan("switchyard run"), dim("\"<prompt>\" [--preset <name>] [--policy <mode>] [--budget <usd>]"))
 	fmt.Printf("    %s %s\n", cyan("switchyard chat"), dim("[--preset <name>] [--policy <mode>] [--budget <usd>]"))
 	fmt.Printf("    %s %s\n", cyan("switchyard daemon"), dim("[-project <id>] [-url <url>]"))
@@ -467,7 +475,7 @@ func buildPrompt(caveman bool, policy ExecutionPolicy, preset string, budget flo
 	return fmt.Sprintf("%s %s[%s] > ", cyan("switchyard"), tags, yellow(presetDisplay))
 }
 
-func printBanner(preset, baseURL, projectID string, caveman bool, policy ExecutionPolicy, budget float64) {
+func printBanner(preset, baseURL, projectID string, caveman bool, policy ExecutionPolicy, budget float64, apiKey string) {
 	p := getPricing(preset)
 	cavemanStr := green("ON (token-saver)")
 	if !caveman {
@@ -479,10 +487,18 @@ func printBanner(preset, baseURL, projectID string, caveman bool, policy Executi
 		budgetStr = yellow(fmt.Sprintf("$%.4f per task", budget))
 	}
 
+	authStr := ""
+	if apiKey == "" || apiKey == "byok" {
+		authStr = yellow("BYOK mode (provider keys only, no project linked)")
+	} else {
+		authStr = green("Authenticated")
+	}
+
 	fmt.Println()
 	fmt.Println(bold(cyan("  ========================================================")))
 	fmt.Println(bold(cyan("    SWITCHYARD  -  Routing, Cost & Safety for AI Agents   ")))
 	fmt.Println(bold(cyan("  ========================================================")))
+	fmt.Printf("  Auth:        %s\n", authStr)
 	fmt.Printf("  Preset:      %s -> %s (%s)\n", yellow(preset), bold(p.Display), p.Provider)
 	fmt.Printf("  Policy:      %s\n", formatPolicyLabel(policy))
 	fmt.Printf("  Budget:      %s\n", budgetStr)
@@ -495,6 +511,7 @@ func printBanner(preset, baseURL, projectID string, caveman bool, policy Executi
 	}
 	fmt.Println(dim("  --------------------------------------------------------"))
 	fmt.Println(dim("  /policy <mode>  /preset <name>  /budget <usd>  /rollback"))
+	fmt.Println(dim("  Type /help for all commands and setup instructions"))
 	fmt.Println(dim("  --------------------------------------------------------"))
 	fmt.Println()
 }
@@ -530,10 +547,55 @@ func printChatHelp() {
 	fmt.Printf("  %-24s %s\n", cyan("/clear"), "Clear conversation history")
 	fmt.Printf("  %-24s %s\n", cyan("/exit  /quit"), "Exit Switchyard")
 	fmt.Println()
+	fmt.Println(bold("  Setup & Authentication:"))
+	fmt.Printf("  %-24s %s\n", yellow("switchyard login"), "Login via browser (GitHub OAuth) to link your project")
+	fmt.Printf("  %-24s %s\n", yellow("switchyard keys set <p> <k>"), "Set a provider API key (gemini, openai, anthropic, deepseek)")
+	fmt.Printf("  %-24s %s\n", yellow("switchyard keys"), "View all configured provider keys and status")
+	fmt.Printf("  %-24s %s\n", yellow("switchyard whoami"), "Show active session, API key, and project ID")
+	fmt.Println()
 	fmt.Println(bold("  Interactive Tips:"))
 	fmt.Printf("  %-24s %s\n", cyan("[Tab] key"), "Autocompletes slash commands, policies, presets, and @files")
 	fmt.Printf("  %-24s %s\n", cyan("@file / @dir"), "Embeds workspace files with line numbers into prompt context")
 	fmt.Printf("  %-24s %s\n", cyan("Safety Guardrails"), ".env*, lockfiles, certificates, and .git are strictly protected")
+	fmt.Println()
+}
+
+// printFirstRunOnboarding shows a clear interactive setup guide for new users with no credentials.
+func printFirstRunOnboarding(baseURL string) {
+	fmt.Println()
+	fmt.Println(bold(cyan("  ========================================================")))
+	fmt.Println(bold(cyan("    SWITCHYARD  -  First Run Setup")))
+	fmt.Println(bold(cyan("  ========================================================")))
+	fmt.Println()
+	fmt.Println("  Welcome! Switchyard is not configured yet.")
+	fmt.Println("  You need to either log in or add a provider API key to get started.")
+	fmt.Println()
+	fmt.Println(bold("  Option 1 - Login via Switchyard Platform (Recommended)"))
+	fmt.Println(dim("  -------------------------------------------------------"))
+	fmt.Printf("  Provides smart multi-model routing, cost tracking, and\n")
+	fmt.Printf("  remote task dispatch from the web dashboard.\n")
+	fmt.Println()
+	fmt.Printf("    %s\n", bold(yellow("switchyard login")))
+	fmt.Println()
+	fmt.Println(bold("  Option 2 - Bring Your Own Key (BYOK, no account needed)"))
+	fmt.Println(dim("  -------------------------------------------------------"))
+	fmt.Printf("  Use your own API keys from any provider.\n")
+	fmt.Printf("  Keys are stored locally in ~/.switchyard/credentials.json.\n")
+	fmt.Println()
+	fmt.Printf("    %s\n", yellow("switchyard keys set gemini   AIzaSyYourGeminiKeyHere"))
+	fmt.Printf("    %s\n", yellow("switchyard keys set openai   sk-proj-YourOpenAIKey"))
+	fmt.Printf("    %s\n", yellow("switchyard keys set anthropic sk-ant-YourAnthropicKey"))
+	fmt.Printf("    %s\n", yellow("switchyard keys set deepseek sk-YourDeepSeekKey"))
+	fmt.Println()
+	fmt.Println(bold("  Option 3 - Set environment variables"))
+	fmt.Println(dim("  -------------------------------------------------------"))
+	fmt.Printf("    %s\n", dim("export GEMINI_API_KEY=AIzaSy..."))
+	fmt.Printf("    %s\n", dim("export OPENAI_API_KEY=sk-proj-..."))
+	fmt.Printf("    %s\n", dim("export ANTHROPIC_API_KEY=sk-ant-..."))
+	fmt.Println()
+	fmt.Println(dim("  --------------------------------------------------------"))
+	fmt.Printf("  Documentation: %s\n", cyan("https://switchyard-docs--lukasdesouza.replit.app/"))
+	fmt.Println(dim("  --------------------------------------------------------"))
 	fmt.Println()
 }
 
@@ -555,19 +617,67 @@ func startInteractiveChat(initialPreset string, initialPolicy ExecutionPolicy, i
 		baseURL = os.Getenv("NEXUS_BASE_URL")
 	}
 	if baseURL == "" {
-		baseURL = "http://localhost:8080"
+		baseURL = DefaultGatewayURL
 	}
 
-	if apiKey == "" {
-		fmt.Println(yellow("No credentials found. Launching Switchyard web authentication..."))
-		newCreds, err := StartWebAuthFlow(DefaultFrontendURL, baseURL)
-		if err != nil {
-			fmt.Println(red(fmt.Sprintf("Authentication failed: %v", err)))
-			fmt.Println(dim("You can log in manually using: switchyard login -key <ngk_...>"))
+
+	// Detect if this is a first-run / unconfigured state
+	hasProviderKeys := false
+	if creds != nil && creds.ProviderKeys != nil {
+		for _, v := range creds.ProviderKeys {
+			if v != "" {
+				hasProviderKeys = true
+				break
+			}
+		}
+	}
+	// Also check env vars
+	if !hasProviderKeys {
+		for _, env := range []string{"GEMINI_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY", "DEEPSEEK_API_KEY"} {
+			if os.Getenv(env) != "" {
+				hasProviderKeys = true
+				break
+			}
+		}
+	}
+
+	if apiKey == "" && !hasProviderKeys {
+		RunSetupWizard(baseURL)
+		// After wizard, reload credentials and continue if the user configured something
+		creds, _ = loadCredentials()
+		if creds != nil && creds.APIKey != "" {
+			apiKey = creds.APIKey
+		}
+		if creds != nil && creds.BaseURL != "" {
+			baseURL = creds.BaseURL
+		}
+		// Check again for provider keys after wizard
+		hasProviderKeys = false
+		if creds != nil && creds.ProviderKeys != nil {
+			for _, v := range creds.ProviderKeys {
+				if v != "" {
+					hasProviderKeys = true
+					break
+				}
+			}
+		}
+		// If still not configured, exit cleanly
+		if apiKey == "" && !hasProviderKeys {
 			return
 		}
-		creds = newCreds
-		apiKey = creds.APIKey
+	}
+
+	// Warn if no gateway key but also no provider keys (partial config)
+	if apiKey == "" && hasProviderKeys {
+		fmt.Println()
+		fmt.Println(yellow("  [NOTE] No Switchyard API key found. Routing will use your provider keys (BYOK) directly."))
+		fmt.Println(dim("         Run 'switchyard login' to link a project for full routing, cost tracking, and remote tasks."))
+		fmt.Println()
+		// Use a placeholder key so the gateway request still goes through
+		apiKey = "byok"
+		if creds == nil {
+			creds = &Credentials{BaseURL: baseURL}
+		}
 	}
 
 	preset := initialPreset
@@ -604,7 +714,7 @@ func startInteractiveChat(initialPreset string, initialPolicy ExecutionPolicy, i
 		projectID = creds.ProjectID
 	}
 
-	printBanner(preset, baseURL, projectID, caveman, policy, budget)
+	printBanner(preset, baseURL, projectID, caveman, policy, budget, apiKey)
 
 	home, _ := os.UserHomeDir()
 	historyFile := filepath.Join(home, ".switchyard", "chat_history")

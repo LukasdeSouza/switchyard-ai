@@ -14,6 +14,7 @@ const (
 	ProviderOpenAI    ProviderID = "openai"
 	ProviderAnthropic ProviderID = "anthropic"
 	ProviderGemini    ProviderID = "gemini"
+	ProviderDeepSeek  ProviderID = "deepseek"
 )
 
 // ProviderConnection stores BYOK credentials reference for a project.
@@ -44,7 +45,7 @@ func (p *ProviderConnection) Validate() error {
 		return New(CodeBadRequest, "project_id is required")
 	}
 	switch p.Provider {
-	case ProviderOpenAI, ProviderAnthropic, ProviderGemini:
+	case ProviderOpenAI, ProviderAnthropic, ProviderGemini, ProviderDeepSeek:
 	default:
 		return New(CodeBadRequest, "unsupported provider: "+string(p.Provider))
 	}

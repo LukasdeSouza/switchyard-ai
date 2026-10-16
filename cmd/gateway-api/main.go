@@ -170,7 +170,13 @@ func main() {
 		ProjectsHandler:      handlers.NewProjectsRouter(prjRepo),
 		APIKeysHandler:       handlers.NewAPIKeysRouter(keyRepo),
 		ProvidersHandler:     handlers.NewProvidersRouter(pconnRepo),
-		UsageHandler:         handlers.NewUsageHandler(recRepo),
+		ProviderKeysHandler: handlers.NewProviderKeysRouter(handlers.ProviderKeysHandlerConfig{
+			ProviderStore: pconnRepo,
+			SupabaseURL:   supabaseURL,
+			SupabaseKey:   supabaseKey,
+			Logger:        logger,
+		}),
+		UsageHandler:    handlers.NewUsageHandler(recRepo),
 		RequestsHandler:      handlers.NewRequestsHandler(recRepo),
 		TasksHandler:         handlers.NewTasksRouter(taskRepo),
 	})

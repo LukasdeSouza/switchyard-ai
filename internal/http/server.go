@@ -33,6 +33,7 @@ type Dependencies struct {
 	ProjectsHandler      http.Handler
 	APIKeysHandler       http.Handler
 	ProvidersHandler     http.Handler
+	ProviderKeysHandler  http.Handler
 	UsageHandler         http.HandlerFunc
 	RequestsHandler      http.HandlerFunc
 	CliAuthHandler       http.HandlerFunc
@@ -100,6 +101,9 @@ func New(deps Dependencies) *Server {
 		r.Mount("/projects", deps.ProjectsHandler)
 		r.Mount("/api-keys", deps.APIKeysHandler)
 		r.Mount("/providers", deps.ProvidersHandler)
+		if deps.ProviderKeysHandler != nil {
+			r.Mount("/provider-keys", deps.ProviderKeysHandler)
+		}
 
 		// Analytics
 		r.Get("/usage", deps.UsageHandler)

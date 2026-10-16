@@ -617,7 +617,7 @@ func startInteractiveChat(initialPreset string, initialPolicy ExecutionPolicy, i
 		baseURL = os.Getenv("NEXUS_BASE_URL")
 	}
 	if baseURL == "" {
-		baseURL = "http://localhost:8080"
+		baseURL = DefaultGatewayURL
 	}
 
 

@@ -2,10 +2,7 @@
 package handlers
 
 import (
-	"context"
 	"encoding/json"
-	"fmt"
-	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -54,46 +51,6 @@ func NewCliAuthHandler(cfg CliAuthHandlerConfig) *CliAuthHandler {
 	}
 }
 
-type supabaseUserResponse struct {
-	ID    string `json:"id"`
-	Email string `json:"email"`
-}
-
-func (h *CliAuthHandler) validateSupabaseToken(ctx context.Context, token string) (*supabaseUserResponse, error) {
-	url := fmt.Sprintf("%s/auth/v1/user", h.supabaseURL)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("create supabase auth request: %w", err)
-	}
-
-	req.Header.Set("Authorization", "Bearer "+token)
-	if h.supabaseKey != "" {
-		req.Header.Set("apikey", h.supabaseKey)
-	}
-
-	resp, err := h.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("contact supabase auth: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("supabase auth rejected token (status %d): %s", resp.StatusCode, string(body))
-	}
-
-	var user supabaseUserResponse
-	if err := json.NewDecoder(resp.Body).Decode(&user); err != nil {
-		return nil, fmt.Errorf("decode supabase user response: %w", err)
-	}
-
-	if user.ID == "" {
-		return nil, fmt.Errorf("supabase returned empty user ID")
-	}
-
-	return &user, nil
-}
-
 // ServeHTTP implements http.Handler for POST /v1/auth/cli-key.
 func (h *CliAuthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	reqID := observability.RequestIDFromContext(r.Context())
@@ -126,7 +83,7 @@ func (h *CliAuthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 2. Validate token against Supabase Auth
-	sbUser, err := h.validateSupabaseToken(r.Context(), token)
+	sbUser, err := validateSupabaseJWT(r.Context(), h.httpClient, h.supabaseURL, h.supabaseKey, token)
 	if err != nil {
 		h.logger.Warn("supabase token validation failed", zap.Error(err), zap.String("request_id", reqID))
 		writeError(w, reqID, domain.New(domain.CodeUnauthorized, "invalid or expired authentication token"))

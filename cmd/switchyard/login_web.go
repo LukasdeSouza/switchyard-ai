@@ -33,11 +33,17 @@ type callbackPayload struct {
 // It spins up a local loopback server, opens the Switchyard Web Frontend in the user's
 // browser, and waits for the credentials callback.
 func StartWebAuthFlow(frontendURL, gatewayURL string) (*Credentials, error) {
+	if envFrontend := os.Getenv("SWITCHYARD_FRONTEND_URL"); envFrontend != "" && (frontendURL == "" || frontendURL == DefaultFrontendURL) {
+		frontendURL = envFrontend
+	}
 	if frontendURL == "" {
 		frontendURL = DefaultFrontendURL
 	}
 	frontendURL = strings.TrimRight(frontendURL, "/#")
 
+	if envGateway := os.Getenv("SWITCHYARD_GATEWAY_URL"); envGateway != "" && (gatewayURL == "" || gatewayURL == DefaultGatewayURL) {
+		gatewayURL = envGateway
+	}
 	if gatewayURL == "" {
 		gatewayURL = DefaultGatewayURL
 	}
